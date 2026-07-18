@@ -1,7 +1,17 @@
 import { Link } from "react-router-dom";
-import { categoriesData } from "../../assets/assets";
+import { useState, useEffect } from "react";
+import api from "../../config/api";
 
 const HomeCategories = () => {
+    const [categoriesData, setCategoriesData] = useState<any[]>([]);
+    
+    useEffect(() => {
+        api.get("/categories")
+            .then(res => setCategoriesData(res.data.categories))
+            .catch(err => console.error("Failed to fetch categories:", err));
+    }, []);
+
+    if (categoriesData.length === 0) return null;
     return (
         <section className="py-16">
             <div className="max-w-7xl mx-auto">

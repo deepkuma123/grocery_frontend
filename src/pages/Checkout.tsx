@@ -12,7 +12,7 @@ import { useAuth } from "../context/AuthContext";
 
 const Checkout = () => {
     const navigate = useNavigate();
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
     const { items, cartTotal, clearCart } = useCart();
     const { user } = useAuth();
@@ -34,7 +34,7 @@ const Checkout = () => {
 
     const [paymentMethod, setPaymentMethod] = useState("card");
 
-    const [deliveryTimeSlot, setDeliveryTimeSlot] = useState("ASAP");
+
     const [couponCode, setCouponCode] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState("");
     const [discount, setDiscount] = useState(0);
@@ -66,7 +66,7 @@ const Checkout = () => {
                 shippingAddress: address,
                 paymentMethod,
                 couponCode: appliedCoupon || undefined,
-                deliveryTimeSlot,
+                deliveryTimeSlot: "ASAP",
             };
 
             const { data } = await api.post("/orders", orderData);
@@ -170,8 +170,6 @@ const Checkout = () => {
                                 handlePlaceOrder={handlePlaceOrder} 
                                 loading={loading} 
                                 total={total} 
-                                deliveryTimeSlot={deliveryTimeSlot}
-                                setDeliveryTimeSlot={setDeliveryTimeSlot}
                             />
                         )}
                     </div>
@@ -191,7 +189,7 @@ const Checkout = () => {
 
                             <div className="flex justify-between">
                                 <span className="text-app-text-light">Delivery</span>
-                                <span>{deliveryFee === 0 ? <span className="text-app-success">Free</span> : `${currency}${deliveryFee.toFixed(2)}`}</span>
+                                <span>{deliveryFee === 0 ? <span className="text-app-success">Free Delivery</span> : `${currency}${deliveryFee.toFixed(2)}`}</span>
                             </div>
 
                             <div className="flex justify-between">

@@ -10,7 +10,7 @@ import api from "../config/api";
 import { io } from "socket.io-client";
 
 const OrderTracking = () => {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
     const { id } = useParams();
     const navigate = useNavigate();
     const [order, setOrder] = useState<Order | null>(null);
@@ -158,7 +158,7 @@ const OrderTracking = () => {
 
                                 <div className="flex justify-between">
                                     <span className="text-app-text-light">Delivery</span>
-                                    <span>{order?.deliveryFee === 0 ? "Free" : `${currency}${order?.deliveryFee.toFixed(2)}`}</span>
+                                    <span>{order?.deliveryFee === 0 ? "Free Delivery" : `${currency}${order?.deliveryFee.toFixed(2)}`}</span>
                                 </div>
 
                                 <div className="flex justify-between">

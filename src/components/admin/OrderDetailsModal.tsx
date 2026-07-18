@@ -6,7 +6,7 @@ interface OrderDetailsModalProps {
 }
 
 export default function OrderDetailsModal({ order, onClose }: OrderDetailsModalProps) {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
     if (!order) return null;
 
@@ -102,7 +102,7 @@ export default function OrderDetailsModal({ order, onClose }: OrderDetailsModalP
                             </div>
                             <div className="flex justify-between">
                                 <span>Delivery Fee</span>
-                                <span>{order.deliveryFee === 0 ? "Free" : `${currency}${order.deliveryFee?.toFixed(2)}`}</span>
+                                <span>{order.deliveryFee === 0 ? "Free Delivery" : `${currency}${order.deliveryFee?.toFixed(2)}`}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>Tax</span>

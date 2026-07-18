@@ -41,7 +41,7 @@ export const heroSectionData = {
     description: "Fresh, organic groceries delivered from local farms to your doorstep. Quality you can taste, convenience you deserve.",
     hero_image: hero_bg,
     hero_features: [
-        { icon: TruckIcon, title: "Free Delivery", desc: "Orders over $20" },
+        { icon: TruckIcon, title: "Free Delivery", desc: "Orders over ₹20" },
         { icon: LeafIcon, title: "100% Organic", desc: "Certified products" },
         { icon: ClockIcon, title: "Same Day", desc: "Express delivery" },
         { icon: ShieldCheckIcon, title: "Secure Pay", desc: "Safe checkout" },
@@ -52,7 +52,7 @@ export const deliveryPartnerLoginImage = "https://images.unsplash.com/photo-1610
 
 export const appPromoBannerData = {
     title: "Get fresh groceries in minutes",
-    description: "Download the Instacart app for exclusive deals, real-time tracking, and the freshest selection delivered right to your door.",
+    description: "Download the DailySewa app for exclusive deals, real-time tracking, and the freshest selection delivered right to your door.",
 };
 
 export const footerData = {

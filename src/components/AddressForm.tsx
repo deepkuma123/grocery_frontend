@@ -36,8 +36,8 @@ const AddressForm = ({ resetForm, handleSubmit, form, setForm, editingId }: any)
             <div className="fixed inset-0 bg-black/40 z-50" />
 
             {/* form container  */}
-            <div onClick={resetForm} className="fixed inset-0 z-50 flex-center p-4">
-                <form onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 w-full max-w-lg animate-fade-in">
+            <div onClick={resetForm} className="fixed inset-0 z-50 overflow-y-auto flex justify-center items-start pt-10 pb-10 px-4 sm:items-center sm:pt-4 sm:pb-4">
+                <form onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 w-full max-w-lg animate-fade-in my-auto shadow-2xl">
                     {/* form header  */}
                     <div className="flex items-center justify-between mb-5">
                         <h2 className="text-lg font-semibold text-app-green">{editingId ? "Edit Address" : "Add New Address"}</h2>

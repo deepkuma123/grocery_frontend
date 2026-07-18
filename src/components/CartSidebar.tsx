@@ -3,7 +3,7 @@ import { useCart } from "../context/CartContext";
 import { ArrowRightIcon, MinusIcon, PlusIcon, ShoppingBagIcon, Trash2Icon, XIcon } from "lucide-react";
 
 const CartSidebar = () => {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
     const { items, updateQuantity, removeFromCart, cartTotal, isCartOpen, setIsCartOpen } = useCart();
 
@@ -101,10 +101,10 @@ const CartSidebar = () => {
 
                         <div className="flex justify-between text-sm">
                             <span className="text-app-text-light">Delivery</span>
-                            <span className="font-medium">{deliveryFee === 0 ? <span className="text-app-success">Free</span> : `${currency}${deliveryFee.toFixed(2)}`}</span>
+                            <span className="font-medium">{deliveryFee === 0 ? <span className="text-app-success">Free Delivery</span> : `${currency}${deliveryFee.toFixed(2)}`}</span>
                         </div>
 
-                        {deliveryFee > 0 && <p className="text-xs text-app-text-light text-center">Free delivery on orders over {currency}20!</p>}
+                        {deliveryFee > 0 && <p className="text-xs text-app-text-light text-center">Free Delivery on orders over {currency}20!</p>}
 
                         <div className="flex justify-between text-base font-semibold border-t border-app-border pt-3">
                             <span>Total</span>

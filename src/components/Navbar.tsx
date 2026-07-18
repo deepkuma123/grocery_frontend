@@ -1,6 +1,6 @@
 import { ArrowUpRightIcon, BikeIcon, ChevronDownIcon, LogOutIcon, MapPinIcon, MenuIcon, PackageIcon, SearchIcon, ShieldIcon, ShoppingCartIcon, UserIcon, XIcon, HeartIcon } from "lucide-react";
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { assets } from "../assets/assets";
@@ -37,11 +37,9 @@ const Navbar = () => {
                 <div className="w-full flex items-center justify-end gap-4 lg:gap-10">
                     {/* Nav Links - Desktop */}
                     <div className="hidden md:flex items-center gap-6 text-sm text-zinc-600">
-                        <Link to="/">Home</Link>
-                        <Link to="/products">Products</Link>
-                        <Link to="/deals" className="text-app-orange">
-                            Deals
-                        </Link>
+                        <NavLink to="/" className={({ isActive }) => isActive ? "text-app-orange font-medium" : "hover:text-app-orange transition-colors"}>Home</NavLink>
+                        <NavLink to="/products" className={({ isActive }) => isActive ? "text-app-orange font-medium" : "hover:text-app-orange transition-colors"}>Products</NavLink>
+                        <NavLink to="/deals" className={({ isActive }) => isActive ? "text-app-orange font-medium" : "hover:text-app-orange transition-colors"}>Deals</NavLink>
                     </div>
                     {/* Search */}
                     <form onSubmit={handleSearch} className="hidden sm:flex flex-1 max-w-sm text-xs sm:text-sm">
@@ -86,6 +84,9 @@ const Navbar = () => {
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                                     <div className="absolute right-0 mt-2.5 w-56 bg-white rounded-xl shadow-lg border border-app-border py-2 z-50 animate-fade-in">
+                                        <div className="px-4 py-3 border-b border-app-border md:hidden flex justify-center">
+                                            <img src={assets.dailysewa_nav_logo} alt="DailySewa" className="h-6" />
+                                        </div>
                                         {user && (
                                             <div className="px-4 py-2 border-b border-app-border">
                                                 <p className="text-sm font-medium text-zinc-900">{user?.name}</p>

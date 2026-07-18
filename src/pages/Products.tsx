@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Product } from "../types";
-import { categoriesData } from "../assets/assets";
 import { ChevronDown, Home, SlidersHorizontal, XIcon } from "lucide-react";
 import ProductCard from "../components/ProductCard";
 import Loading from "../components/Loading";
@@ -15,6 +14,13 @@ const Products = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+    const [categoriesData, setCategoriesData] = useState<any[]>([]);
+
+    useEffect(() => {
+        api.get("/categories")
+            .then((res) => setCategoriesData(res.data.categories))
+            .catch(() => {});
+    }, []);
 
     const category = searchParams.get("category") || "";
     const organic = searchParams.get("organic") || "";
@@ -30,7 +36,7 @@ const Products = () => {
             if (category) params.set("category", category);
             if (organic) params.set("organic", organic);
             if (sort) params.set("sort", sort);
-            if (sort) params.set("sort", sort);
+            if (minPrice) params.set("minPrice", minPrice);
             if (maxPrice) params.set("maxPrice", maxPrice);
             params.set("page", String(page));
             params.set("limit", "12");

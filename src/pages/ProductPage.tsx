@@ -7,9 +7,10 @@ import { ArrowLeftIcon, ArrowRightIcon, HomeIcon, LeafIcon, MinusIcon, PlusIcon,
 import ReviewsSection from "../components/ReviewsSection";
 import ProductCard from "../components/ProductCard";
 import api from "../config/api";
+import toast from "react-hot-toast";
 
 const ProductPage = () => {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
     const { id } = useParams();
     const navigate = useNavigate();
     const { items, addToCart, updateQuantity, removeFromCart } = useCart();
@@ -17,12 +18,27 @@ const ProductPage = () => {
     const [product, setProduct] = useState<Product | null>(null);
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [localQuantity, setLocalQuantity] = useState(1);
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
+    const [notifyEmail, setNotifyEmail] = useState("");
+    const [notifying, setNotifying] = useState(false);
+
+    const handleNotify = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!notifyEmail) return;
+        setNotifying(true);
+        try {
+            const { data } = await api.post(`/notifications/notify`, { productId: product?.id, email: notifyEmail });
+            toast.success(data.message);
+            setNotifyEmail("");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to subscribe");
+        } finally {
+            setNotifying(false);
+        }
+    };
 
     useEffect(() => {
         setLoading(true);
-        setLocalQuantity(1);
         window.scrollTo(0, 0);
 
         api.get(`/products/${id}`)
@@ -47,7 +63,7 @@ const ProductPage = () => {
 
     const cartItem = items.find((item) => item.product.id === product.id && item.variantId === selectedVariant?._id);
     const inCart = !!cartItem;
-    const displayQuantity = inCart ? cartItem.quantity : localQuantity;
+    const displayQuantity = cartItem?.quantity || 0;
 
     const displayPrice = selectedVariant ? selectedVariant.price : product.price;
     const displayOriginalPrice = selectedVariant ? selectedVariant.originalPrice : product.originalPrice;
@@ -58,14 +74,11 @@ const ProductPage = () => {
         if (inCart) {
             if (cartItem.quantity > 1) updateQuantity(product.id, cartItem.quantity - 1);
             else removeFromCart(product.id);
-        } else {
-            setLocalQuantity(Math.max(1, localQuantity - 1));
         }
     };
 
     const handlePlus = () => {
         if (inCart) updateQuantity(product.id, cartItem.quantity + 1);
-        else setLocalQuantity(localQuantity + 1);
     };
 
     const categoryLabel = product.category.replace(/-/g, " ");
@@ -162,7 +175,6 @@ const ProductPage = () => {
                                                 key={variant._id} 
                                                 onClick={() => {
                                                     setSelectedVariant(variant);
-                                                    setLocalQuantity(1); // Reset quantity on variant change
                                                 }}
                                                 className={`px-4 py-2 border rounded-xl text-sm font-medium transition-all ${
                                                     selectedVariant?._id === variant._id 
@@ -183,29 +195,35 @@ const ProductPage = () => {
 
                             {/* Quantity + Add to Cart */}
                             <div className="flex items-center gap-3">
-                                {/* Quantity */}
-                                <div className="flex items-center border border-app-border rounded-xl overflow-hidden">
-                                    <button onClick={handleMinus} className="p-3 hover:bg-app-cream transition-colors">
-                                        <MinusIcon className="w-4 h-4" />
+                                {displayStock === 0 ? (
+                                    <form onSubmit={handleNotify} className="w-full max-w-[320px] flex gap-2">
+                                        <input type="email" required placeholder="Email for restock alert" value={notifyEmail} onChange={(e) => setNotifyEmail(e.target.value)} className="w-full px-3 py-2.5 text-sm border border-zinc-200 rounded-xl focus:border-app-green outline-none bg-white" disabled={notifying} />
+                                        <button type="submit" disabled={notifying} className="px-4 py-2.5 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors whitespace-nowrap disabled:opacity-50">
+                                            {notifying ? "..." : "Notify Me"}
+                                        </button>
+                                    </form>
+                                ) : inCart ? (
+                                    <div className="flex items-center border border-app-green bg-app-cream text-app-green rounded-xl overflow-hidden w-full max-w-[200px]">
+                                        <button onClick={handleMinus} className="py-3 px-4 hover:bg-app-green/10 transition-colors flex-center">
+                                            <MinusIcon className="w-4 h-4" />
+                                        </button>
+                                        <span className="flex-1 text-sm font-semibold text-center min-w-[40px]">{displayQuantity}</span>
+                                        <button onClick={handlePlus} className="py-3 px-4 hover:bg-app-green/10 transition-colors flex-center">
+                                            <PlusIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            addToCart(product, 1, selectedVariant?._id);
+                                        }}
+                                        disabled={displayStock === 0}
+                                        className="w-full max-w-[200px] py-3 font-semibold rounded-xl transition-colors flex-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] bg-app-orange text-white hover:bg-app-orange-dark"
+                                    >
+                                        <ShoppingCartIcon className="w-4 h-4" />
+                                        Add to Cart
                                     </button>
-
-                                    <span className="px-5 text-sm font-semibold min-w-[40px] text-center">{displayQuantity}</span>
-
-                                    <button onClick={handlePlus} className="p-3 hover:bg-app-cream transition-colors">
-                                        <PlusIcon className="w-4 h-4" />
-                                    </button>
-                                </div>
-                                {/* Add to Cart */}
-                                <button
-                                    onClick={() => {
-                                        if (!inCart) addToCart(product, localQuantity, selectedVariant?._id);
-                                    }}
-                                    disabled={displayStock === 0}
-                                    className={`flex-1 py-3 font-semibold rounded-xl transition-colors flex-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] ${inCart ? "bg-app-cream text-app-green border border-app-green" : "bg-app-orange text-white hover:bg-app-orange-dark"}`}
-                                >
-                                    <ShoppingCartIcon className="w-4 h-4" />
-                                    {inCart ? "Added to Cart" : "Add to Cart"}
-                                </button>
+                                )}
                             </div>
                         </div>
                     </div>

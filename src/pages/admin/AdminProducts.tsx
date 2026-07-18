@@ -7,14 +7,14 @@ import api from "../../config/api";
 import toast from "react-hot-toast";
 
 export default function AdminProducts() {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchProducts = async () => {
         try {
-            const { data } = await api.get("/products");
+            const { data } = await api.get("/products?includeDeleted=true");
             setProducts(data.products);
         } catch (error: any) {
             toast.error(error.response?.data?.message || error?.message);
@@ -27,11 +27,12 @@ export default function AdminProducts() {
         fetchProducts();
     }, []);
 
-    const handleMarkOutOfStock = async (id: string, name: string) => {
-        if (!window.confirm(`Are you sure you want to mark "${name}" as out of stock?`)) return;
+    const handleDelete = async (id: string, name: string) => {
+        console.log("handleDelete called", id, name);
+        // if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
         try {
             await api.delete(`/products/${id}`);
-            toast.success("Product marked as out of stock");
+            toast.success("Product deleted successfully");
             fetchProducts();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to update product");
@@ -54,7 +55,9 @@ export default function AdminProducts() {
                         <thead className="bg-app-cream/50 text-zinc-500 uppercase text-xs font-semibold">
                             <tr>
                                 <th className="px-6 py-4">Product</th>
-                                <th className="px-6 py-4">Price</th>
+                                <th className="px-6 py-4">Selling Price</th>
+                                <th className="px-6 py-4">Cost Price</th>
+                                <th className="px-6 py-4">Profit</th>
                                 <th className="px-6 py-4">Stock</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -73,14 +76,25 @@ export default function AdminProducts() {
                                             <div className="flex items-center gap-3">
                                                 <img src={product.image} alt={product.name} className="size-12 rounded-lg object-cover" />
                                                 <div>
-                                                    <p className="font-semibold text-zinc-900">{product.name}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-semibold text-zinc-900">{product.name}</p>
+                                                        {product.isDeleted && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">DELETED</span>}
+                                                    </div>
                                                     <p className="text-xs text-zinc-500">{product.category || "Uncategorized"}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 font-medium">
+                                        <td className="px-6 py-4 font-medium text-app-green">
                                             {currency}
                                             {product.price.toFixed(2)}
+                                        </td>
+                                        <td className="px-6 py-4 font-medium text-red-600">
+                                            {currency}
+                                            {(product.costPrice || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-6 py-4 font-medium text-blue-600">
+                                            {currency}
+                                            {((product.price - (product.costPrice || 0)) || 0).toFixed(2)}
                                         </td>
                                         <td className="px-6 py-4">
                                             {product.hasVariants ? (
@@ -91,12 +105,18 @@ export default function AdminProducts() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Link to={`/admin/products/${product.id}/edit`} className="p-2 text-zinc-500 hover:text-app-orange bg-zinc-100 hover:bg-orange-50 rounded-lg transition-colors">
-                                                    <EditIcon className="size-4" />
-                                                </Link>
-                                                <button onClick={() => handleMarkOutOfStock(product.id, product.name)} title="Mark Out of Stock" className="p-2 text-zinc-500 hover:text-red-600 bg-zinc-100 hover:bg-red-50 rounded-lg transition-colors">
-                                                    <XIcon className="size-4" />
-                                                </button>
+                                                {!product.isDeleted ? (
+                                                    <>
+                                                        <Link to={`/admin/products/${product.id}/edit`} className="p-2 text-zinc-500 hover:text-app-orange bg-zinc-100 hover:bg-orange-50 rounded-lg transition-colors">
+                                                            <EditIcon className="size-4" />
+                                                        </Link>
+                                                        <button onClick={() => handleDelete(product.id, product.name)} title="Delete Product" className="p-2 text-zinc-500 hover:text-red-600 bg-zinc-100 hover:bg-red-50 rounded-lg transition-colors">
+                                                            <XIcon className="size-4" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs font-semibold text-zinc-400 mr-2">Inactive</span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

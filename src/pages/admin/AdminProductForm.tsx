@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon } from "lucide-react";
-import { categoriesData } from "../../assets/assets";
+
 import Loading from "../../components/Loading";
 import api from "../../config/api";
 import toast from "react-hot-toast";
@@ -19,6 +19,7 @@ export default function AdminProductForm() {
         name: "",
         description: "",
         price: "",
+        costPrice: "",
         originalPrice: "",
         image: "",
         category: "",
@@ -28,7 +29,20 @@ export default function AdminProductForm() {
         hasVariants: false,
     });
     
-    const [variants, setVariants] = useState<{sku: string, unit: string, price: string, originalPrice: string, stock: string}[]>([]);
+    const [variants, setVariants] = useState<{sku: string, unit: string, price: string, costPrice: string, originalPrice: string, stock: string}[]>([]);
+    const [categoriesData, setCategoriesData] = useState<{name: string, slug: string}[]>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const { data } = await api.get("/categories");
+                setCategoriesData(data.categories);
+            } catch (error) {
+                console.error("Failed to fetch categories");
+            }
+        };
+        fetchCategories();
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -40,6 +54,7 @@ export default function AdminProductForm() {
                         name: p.name,
                         description: p.description,
                         price: p.price.toString(),
+                        costPrice: p.costPrice ? p.costPrice.toString() : "",
                         originalPrice: p.originalPrice ? p.originalPrice.toString() : "",
                         image: p.image,
                         category: p.category,
@@ -54,6 +69,7 @@ export default function AdminProductForm() {
                             sku: v.sku,
                             unit: v.unit,
                             price: v.price.toString(),
+                            costPrice: v.costPrice ? v.costPrice.toString() : "",
                             originalPrice: v.originalPrice ? v.originalPrice.toString() : "",
                             stock: v.stock.toString()
                         })));
@@ -91,6 +107,7 @@ export default function AdminProductForm() {
                 ...formData,
                 image: finalImageUrl,
                 price: Number(formData.price),
+                costPrice: formData.costPrice ? Number(formData.costPrice) : 0,
                 originalPrice: formData.originalPrice ? Number(formData.originalPrice) : 0,
                 stock: Number(formData.stock),
                 hasVariants: formData.hasVariants,
@@ -98,6 +115,7 @@ export default function AdminProductForm() {
                     sku: v.sku,
                     unit: v.unit,
                     price: Number(v.price),
+                    costPrice: v.costPrice ? Number(v.costPrice) : 0,
                     originalPrice: v.originalPrice ? Number(v.originalPrice) : 0,
                     stock: Number(v.stock)
                 })) : []
@@ -171,7 +189,19 @@ export default function AdminProductForm() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 mb-2">Original Price (₹) - Optional</label>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Cost Price (₹) - Admin Only</label>
+                                <input
+                                    required
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.costPrice}
+                                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all bg-red-50"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">MRP (₹) - Optional</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -221,7 +251,7 @@ export default function AdminProductForm() {
                                         <h3 className="text-sm font-semibold text-zinc-900">Manage Variants</h3>
                                         <button 
                                             type="button" 
-                                            onClick={() => setVariants([...variants, { sku: "", unit: "", price: "", originalPrice: "", stock: "" }])}
+                                            onClick={() => setVariants([...variants, { sku: "", unit: "", price: "", costPrice: "", originalPrice: "", stock: "" }])}
                                             className="px-3 py-1.5 bg-app-green/10 text-app-green text-xs font-semibold rounded hover:bg-app-green/20"
                                         >
                                             + Add Variant
@@ -241,9 +271,13 @@ export default function AdminProductForm() {
                                                     <label className="block text-xs font-medium text-zinc-500 mb-1">Size/Unit</label>
                                                     <input required type="text" value={v.unit} onChange={e => { const nv = [...variants]; nv[i].unit = e.target.value; setVariants(nv); }} placeholder="e.g. 500g" className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
                                                 </div>
-                                                <div className="w-24">
-                                                    <label className="block text-xs font-medium text-zinc-500 mb-1">Price</label>
+                                                <div className="w-20">
+                                                    <label className="block text-xs font-medium text-zinc-500 mb-1">Selling Price</label>
                                                     <input required type="number" step="0.01" value={v.price} onChange={e => { const nv = [...variants]; nv[i].price = e.target.value; setVariants(nv); }} className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
+                                                </div>
+                                                <div className="w-20">
+                                                    <label className="block text-xs font-medium text-zinc-500 mb-1 text-red-600">Cost Price</label>
+                                                    <input required type="number" step="0.01" value={v.costPrice} onChange={e => { const nv = [...variants]; nv[i].costPrice = e.target.value; setVariants(nv); }} className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200 bg-red-50" />
                                                 </div>
                                                 <div className="w-24">
                                                     <label className="block text-xs font-medium text-zinc-500 mb-1">Stock</label>

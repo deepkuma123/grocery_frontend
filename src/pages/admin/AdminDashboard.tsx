@@ -10,11 +10,12 @@ interface Stats {
     totalUsers: number;
     totalProducts: number;
     outOfStock: number;
+    totalProfit: number;
     recentOrders: any[];
 }
 
 export default function AdminDashboard() {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -29,8 +30,8 @@ export default function AdminDashboard() {
     const cards = stats
         ? [
               { label: "Total Orders", value: stats.totalOrders, icon: ShoppingBagIcon },
+              { label: "Total Profit", value: `${currency}${stats.totalProfit?.toFixed(2) || "0.00"}`, icon: PackageIcon },
               { label: "Total Users", value: stats.totalUsers, icon: UsersIcon },
-              { label: "Total Products", value: stats.totalProducts, icon: PackageIcon },
               { label: "Out of Stock", value: stats.outOfStock, icon: AlertTriangleIcon },
           ]
         : [];

@@ -41,7 +41,10 @@ export interface Product {
     isOrganic: boolean;
     rating: number;
     reviewCount: number;
-    discount: number;
+    costPrice?: number;
+    hasVariants?: boolean;
+    variants?: any[];
+    isDeleted?: boolean;
     createdAt: string;
 }
 

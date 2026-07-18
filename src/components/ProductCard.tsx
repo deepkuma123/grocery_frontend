@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { Product } from "../types";
-import { Plus, Star, Heart } from "lucide-react";
+import { Plus, Star, Heart, Minus } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 
@@ -9,20 +9,22 @@ interface Props {
 }
 
 const ProductCard = ({ product }: Props) => {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
-    const { addToCart } = useCart();
+    const { items, addToCart, updateQuantity, removeFromCart } = useCart();
     const { toggleWishlist, wishlistIds } = useWishlist();
     const navigate = useNavigate();
 
     const isWished = wishlistIds.includes(product.id);
-
     let isOutOfStock = false;
+
     if (product.hasVariants && product.variants) {
         isOutOfStock = product.variants.every(v => v.stock === 0);
     } else {
         isOutOfStock = product.stock === 0;
     }
+
+    const cartItem = items.find((i) => i.product.id === product.id && !i.variantId);
 
     return (
         <div className="bg-white rounded-2xl overflow-hidden shadow hover:shadow-md transition-all duration-300 group animate-fade-in cursor-pointer" onClick={() => navigate(`/products/${product.id}`)}>
@@ -77,21 +79,47 @@ const ProductCard = ({ product }: Props) => {
                         )}
                     </div>
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (isOutOfStock) return;
-                            if (product.hasVariants) {
-                                navigate(`/products/${product.id}`);
-                            } else {
-                                addToCart(product);
-                            }
-                        }}
-                        disabled={isOutOfStock}
-                        className="size-7 rounded-full bg-app-orange text-white flex-center shrink-0 hover:bg-app-orange-dark transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Plus className="size-3.5" />
-                    </button>
+                    {cartItem && !product.hasVariants ? (
+                        <div className="flex items-center gap-1.5 bg-app-orange text-white rounded-lg px-1.5 py-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={() => {
+                                    if (cartItem.quantity > 1) {
+                                        updateQuantity(cartItem.id, cartItem.quantity - 1);
+                                    } else {
+                                        removeFromCart(cartItem.id);
+                                    }
+                                }}
+                                className="size-5 flex-center hover:bg-white/20 rounded-md transition-colors"
+                            >
+                                <Minus className="size-3" />
+                            </button>
+                            <span className="text-xs font-semibold w-4 text-center">{cartItem.quantity}</span>
+                            <button
+                                onClick={() => {
+                                    updateQuantity(cartItem.id, cartItem.quantity + 1);
+                                }}
+                                className="size-5 flex-center hover:bg-white/20 rounded-md transition-colors"
+                            >
+                                <Plus className="size-3" />
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (isOutOfStock) return;
+                                if (product.hasVariants) {
+                                    navigate(`/products/${product.id}`);
+                                } else {
+                                    addToCart(product);
+                                }
+                            }}
+                            disabled={isOutOfStock}
+                            className="px-3 py-1.5 rounded-lg bg-app-cream text-app-green font-medium text-xs hover:bg-app-green hover:text-white transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Add
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

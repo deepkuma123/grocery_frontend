@@ -10,6 +10,7 @@ export default function AdminLayout() {
         { to: "/admin", label: "Dashboard", icon: BarChart3Icon },
         { to: "/admin/products/new", label: "Add Product", icon: PlusIcon },
         { to: "/admin/products", label: "Products", icon: PackageSearchIcon },
+        { to: "/admin/categories", label: "Categories", icon: PackageSearchIcon },
         { to: "/admin/orders", label: "Orders", icon: ShoppingBagIcon },
         { to: "/admin/delivery-partners", label: "Delivery Partners", icon: Truck },
         { to: "/", label: "Exit", icon: LogOutIcon },

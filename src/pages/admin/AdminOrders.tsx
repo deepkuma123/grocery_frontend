@@ -7,7 +7,7 @@ import api from "../../config/api";
 import OrderDetailsModal from "../../components/admin/OrderDetailsModal";
 
 export default function AdminOrders() {
-    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
+    const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
 
     const [orders, setOrders] = useState<any[]>([]);
     const [partners, setPartners] = useState<DeliveryPartner[]>([]);
