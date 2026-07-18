@@ -12,10 +12,16 @@ import frozen_foods from "./frozen_foods.png";
 import personal_care from "./personal_care.png";
 import baby_care from "./baby_care.png";
 import meat_seafood from "./meat_seafood.png";
+import dailysewa_favicon from "./dailysewa_favicon.svg";
+import dailysewa_nav_logo from "./dailysewa_nav_logo.svg";
+import dailysewa_footer from "./dailysewa_footer.svg";
 
 export const assets = {
     delivery_truck,
     hero_bg,
+    dailysewa_favicon,
+    dailysewa_nav_logo,
+    dailysewa_footer,
 };
 
 export const categoriesData = [
@@ -51,7 +57,7 @@ export const appPromoBannerData = {
 
 export const footerData = {
     brand: {
-        name: "Instacart",
+        name: "DailySewa",
         description: "Bringing fresh, organic groceries straight from local farms to your doorstep. Nourish your home with Earth's finest.",
         socials: [
             { icon: SiFacebook, link: "#" },

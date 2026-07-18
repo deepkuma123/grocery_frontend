@@ -1,6 +1,5 @@
-import { BikeIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import { footerData } from "../assets/assets";
+import { footerData, assets } from "../assets/assets";
 
 const Footer = () => {
     return (
@@ -10,9 +9,10 @@ const Footer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {/* Brand */}
                     <div>
-                        <Link to="/" className="flex items-center gap-2 mb-4">
-                            <BikeIcon className="size-6 text-white" />
-                            <span className="text-xl font-semibold">{footerData.brand.name}</span>
+                        <Link to="/" className="inline-block mb-4">
+                            <div className="bg-white px-4 py-2 rounded-xl inline-flex items-center justify-center">
+                                <img src={assets.dailysewa_footer} alt="DailySewa Logo" className="h-8" />
+                            </div>
                         </Link>
 
                         <p className="text-sm text-white/70 mb-4">{footerData.brand.description}</p>

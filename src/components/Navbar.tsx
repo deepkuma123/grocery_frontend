@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { assets } from "../assets/assets";
 
 const Navbar = () => {
     const { user, logout } = useAuth();
@@ -30,7 +31,7 @@ const Navbar = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-4">
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-2 text-[22px] font-medium shrink-0">
-                    <BikeIcon size={24} /> Instacart
+                    <img src={assets.dailysewa_nav_logo} alt="DailySewa Logo" className="h-8 md:h-10" />
                 </Link>
 
                 <div className="w-full flex items-center justify-end gap-4 lg:gap-10">
