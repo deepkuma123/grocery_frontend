@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { PlusIcon, EditIcon, XIcon } from "lucide-react";
 import type { Product } from "../../types";
 import Loading from "../../components/Loading";
@@ -11,6 +11,9 @@ export default function AdminProducts() {
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchParams] = useSearchParams();
+    const statusFilter = searchParams.get("status");
 
     const fetchProducts = async () => {
         try {
@@ -41,14 +44,31 @@ export default function AdminProducts() {
 
     if (loading) return <Loading />;
 
+    const filteredProducts = products.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+        if (statusFilter === "outofstock") {
+            return matchesSearch && (!p.hasVariants ? p.stock === 0 : p.variants?.every(v => v.stock === 0));
+        }
+        return matchesSearch;
+    });
+
     return (
         <>
             <div className="bg-white rounded-2xl shadow-sm border border-app-border overflow-hidden">
                 <div className="px-6 py-5 border-b border-app-border flex items-center justify-between gap-4 flex-wrap">
-                    <h2 className="text-xl font-semibold text-zinc-900">Products</h2>
-                    <Link to="/admin/products/new" className="flex items-center gap-2 px-4 py-2 bg-app-green text-white rounded-xl hover:bg-green-950 transition-colors font-medium text-sm">
-                        <PlusIcon className="size-4" /> Add Product
-                    </Link>
+                    <h2 className="text-xl font-semibold text-zinc-900">Products {statusFilter === "outofstock" ? "(Out of Stock)" : ""}</h2>
+                    <div className="flex items-center gap-4 ml-auto">
+                        <input
+                            type="text"
+                            placeholder="Search products..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="px-4 py-2 text-sm border border-zinc-200 rounded-xl focus:border-app-green focus:ring-1 focus:ring-app-green outline-none min-w-[250px]"
+                        />
+                        <Link to="/admin/products/new" className="flex items-center gap-2 px-4 py-2 bg-app-green text-white rounded-xl hover:bg-green-950 transition-colors font-medium text-sm">
+                            <PlusIcon className="size-4" /> Add Product
+                        </Link>
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
@@ -63,14 +83,14 @@ export default function AdminProducts() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-app-border">
-                            {products.length === 0 ? (
+                            {filteredProducts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">
+                                    <td colSpan={6} className="px-6 py-8 text-center text-zinc-500">
                                         No products found.
                                     </td>
                                 </tr>
                             ) : (
-                                products.map((product) => (
+                                filteredProducts.map((product) => (
                                     <tr key={product.id} className="hover:bg-zinc-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">

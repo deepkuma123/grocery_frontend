@@ -1,11 +1,25 @@
 import { ArrowRightIcon, LeafIcon } from "lucide-react";
 import { heroSectionData } from "../../assets/assets";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import api from "../../config/api";
 
 const Hero = () => {
+    const [bannerUrl, setBannerUrl] = useState<string>(heroSectionData.hero_image);
+
+    useEffect(() => {
+        api.get("/settings")
+            .then(res => {
+                if (res.data?.settings?.homeBannerImage) {
+                    setBannerUrl(res.data.settings.homeBannerImage);
+                }
+            })
+            .catch(() => {});
+    }, []);
+
     return (
         <section className="relative overflow-hidden min-h-[540px] mb-10 rounded-3xl flex items-center">
-            <img src={heroSectionData.hero_image} alt="Hero" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={bannerUrl} alt="Hero" className="absolute inset-0 h-full w-full object-cover" />
 
             <div className="absolute inset-0 bg-linear-to-r from-app-green via-app-green/65 to-transparent" />
 

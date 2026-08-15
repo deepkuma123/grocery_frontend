@@ -4,12 +4,14 @@ import { PackageIcon, UsersIcon, ShoppingBagIcon, AlertTriangleIcon } from "luci
 import Loading from "../../components/Loading";
 import { statusColors } from "../../assets/assets";
 import api from "../../config/api";
+import toast from "react-hot-toast";
 
 interface Stats {
     totalOrders: number;
     totalUsers: number;
     totalProducts: number;
     outOfStock: number;
+    lowStock: number;
     totalProfit: number;
     recentOrders: any[];
 }
@@ -20,19 +22,44 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const [settings, setSettings] = useState<any>(null);
+    const [bannerUrl, setBannerUrl] = useState("");
+    const [savingBanner, setSavingBanner] = useState(false);
+
     useEffect(() => {
         api.get("/admin/stats")
             .then((res) => setStats(res.data))
             .catch(() => {})
             .finally(() => setLoading(false));
+
+        api.get("/settings")
+            .then(res => {
+                setSettings(res.data.settings);
+                setBannerUrl(res.data.settings?.homeBannerImage || "");
+            })
+            .catch(() => {});
     }, []);
+
+    const handleSaveBanner = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingBanner(true);
+        try {
+            await api.put("/settings", { homeBannerImage: bannerUrl });
+            toast.success("Home banner updated successfully");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to update banner");
+        } finally {
+            setSavingBanner(false);
+        }
+    };
 
     const cards = stats
         ? [
               { label: "Total Orders", value: stats.totalOrders, icon: ShoppingBagIcon },
               { label: "Total Profit", value: `${currency}${stats.totalProfit?.toFixed(2) || "0.00"}`, icon: PackageIcon },
               { label: "Total Users", value: stats.totalUsers, icon: UsersIcon },
-              { label: "Out of Stock", value: stats.outOfStock, icon: AlertTriangleIcon },
+              { label: "Out of Stock", value: stats.outOfStock, icon: AlertTriangleIcon, link: "/admin/products?status=outofstock" },
+              { label: "Low Stock", value: stats.lowStock, icon: AlertTriangleIcon },
           ]
         : [];
 
@@ -41,18 +68,21 @@ export default function AdminDashboard() {
     return (
         <div className="space-y-6">
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {cards.map((card) => (
-                    <div key={card.label} className="bg-white rounded-2xl p-5 border border-app-border flex justify-between gap-3">
-                        <div>
-                            <p className="text-2xl font-semibold text-zinc-900">{card.value}</p>
-                            <p className="text-sm text-app-text-light">{card.label}</p>
-                        </div>
-                        <div className={`size-10 rounded-xl flex-center bg-orange-50 text-orange-600`}>
-                            <card.icon className="size-5" />
-                        </div>
-                    </div>
-                ))}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                {cards.map((card) => {
+                    const CardWrapper = card.link ? Link : 'div';
+                    return (
+                        <CardWrapper to={card.link || ""} key={card.label} className={`bg-white rounded-2xl p-5 border border-app-border flex justify-between gap-3 ${card.link ? 'hover:shadow-md hover:border-app-green transition-all cursor-pointer' : ''}`}>
+                            <div>
+                                <p className="text-2xl font-semibold text-zinc-900">{card.value}</p>
+                                <p className="text-sm text-app-text-light">{card.label}</p>
+                            </div>
+                            <div className={`size-10 rounded-xl flex-center bg-orange-50 text-orange-600`}>
+                                <card.icon className="size-5" />
+                            </div>
+                        </CardWrapper>
+                    );
+                })}
             </div>
 
             {/* Recent Orders */}
@@ -105,6 +135,26 @@ export default function AdminDashboard() {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Quick Settings */}
+            <div className="bg-white rounded-2xl border border-app-border overflow-hidden p-6">
+                <h2 className="text-lg font-semibold text-zinc-900 mb-4">Quick Settings</h2>
+                <form onSubmit={handleSaveBanner} className="max-w-md">
+                    <label className="block text-sm font-medium text-zinc-700 mb-2">Home Banner Image URL</label>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={bannerUrl}
+                            onChange={(e) => setBannerUrl(e.target.value)}
+                            placeholder="https://... (Leave empty for default)"
+                            className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all"
+                        />
+                        <button disabled={savingBanner} type="submit" className="px-4 py-2.5 bg-app-orange text-white font-medium rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50">
+                            {savingBanner ? "Saving..." : "Save"}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

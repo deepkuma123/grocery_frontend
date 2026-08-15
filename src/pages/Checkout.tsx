@@ -40,7 +40,7 @@ const Checkout = () => {
     const [discount, setDiscount] = useState(0);
     const [couponError, setCouponError] = useState("");
 
-    const deliveryFee = cartTotal > 20 ? 0 : 1.99;
+    const deliveryFee = cartTotal > 250 ? 0 : 40;
     const subtotalAfterDiscount = Math.max(0, cartTotal - discount);
     const tax = subtotalAfterDiscount * 0.08;
     const total = subtotalAfterDiscount + deliveryFee + tax;

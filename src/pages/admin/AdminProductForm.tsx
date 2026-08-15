@@ -27,9 +27,12 @@ export default function AdminProductForm() {
         stock: "",
         isOrganic: false,
         hasVariants: false,
+        retailerName: localStorage.getItem("lastRetailerName") || "",
+        alertLimit: "5",
+        gallery: [] as string[],
     });
     
-    const [variants, setVariants] = useState<{sku: string, unit: string, price: string, costPrice: string, originalPrice: string, stock: string}[]>([]);
+    const [variants, setVariants] = useState<{sku: string, unit: string, price: string, costPrice: string, originalPrice: string, stock: string, image: string}[]>([]);
     const [categoriesData, setCategoriesData] = useState<{name: string, slug: string}[]>([]);
 
     useEffect(() => {
@@ -62,6 +65,9 @@ export default function AdminProductForm() {
                         stock: p.stock.toString(),
                         isOrganic: p.isOrganic,
                         hasVariants: p.hasVariants || false,
+                        retailerName: p.retailerName || "",
+                        alertLimit: p.alertLimit ? p.alertLimit.toString() : "5",
+                        gallery: p.gallery || [],
                     });
                     
                     if (p.variants && p.variants.length > 0) {
@@ -71,7 +77,8 @@ export default function AdminProductForm() {
                             price: v.price.toString(),
                             costPrice: v.costPrice ? v.costPrice.toString() : "",
                             originalPrice: v.originalPrice ? v.originalPrice.toString() : "",
-                            stock: v.stock.toString()
+                            stock: v.stock.toString(),
+                            image: v.image || ""
                         })));
                     }
                 }
@@ -103,6 +110,11 @@ export default function AdminProductForm() {
                 return;
             }
 
+            // Save retailer name to local storage
+            if (formData.retailerName) {
+                localStorage.setItem("lastRetailerName", formData.retailerName);
+            }
+
             const payload = {
                 ...formData,
                 image: finalImageUrl,
@@ -110,6 +122,8 @@ export default function AdminProductForm() {
                 costPrice: formData.costPrice ? Number(formData.costPrice) : 0,
                 originalPrice: formData.originalPrice ? Number(formData.originalPrice) : 0,
                 stock: Number(formData.stock),
+                retailerName: formData.retailerName,
+                alertLimit: Number(formData.alertLimit),
                 hasVariants: formData.hasVariants,
                 variants: formData.hasVariants ? variants.map(v => ({
                     sku: v.sku,
@@ -117,7 +131,8 @@ export default function AdminProductForm() {
                     price: Number(v.price),
                     costPrice: v.costPrice ? Number(v.costPrice) : 0,
                     originalPrice: v.originalPrice ? Number(v.originalPrice) : 0,
-                    stock: Number(v.stock)
+                    stock: Number(v.stock),
+                    image: v.image || ""
                 })) : []
             };
 
@@ -233,6 +248,27 @@ export default function AdminProductForm() {
                                     className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Retailer Name (Admin Only)</label>
+                                <input
+                                    type="text"
+                                    value={formData.retailerName}
+                                    onChange={(e) => setFormData({ ...formData, retailerName: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all"
+                                    placeholder="Auto-saves for next time"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Low Stock Alert Limit</label>
+                                <input
+                                    required
+                                    type="number"
+                                    min="0"
+                                    value={formData.alertLimit}
+                                    onChange={(e) => setFormData({ ...formData, alertLimit: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all"
+                                />
+                            </div>
 
                             {/* Options Toggle */}
                             <div className="md:col-span-2 mt-4 pt-4 border-t border-zinc-200">
@@ -251,7 +287,7 @@ export default function AdminProductForm() {
                                         <h3 className="text-sm font-semibold text-zinc-900">Manage Variants</h3>
                                         <button 
                                             type="button" 
-                                            onClick={() => setVariants([...variants, { sku: "", unit: "", price: "", costPrice: "", originalPrice: "", stock: "" }])}
+                                            onClick={() => setVariants([...variants, { sku: "", unit: "", price: "", costPrice: "", originalPrice: "", stock: "", image: "" }])}
                                             className="px-3 py-1.5 bg-app-green/10 text-app-green text-xs font-semibold rounded hover:bg-app-green/20"
                                         >
                                             + Add Variant
@@ -283,6 +319,10 @@ export default function AdminProductForm() {
                                                     <label className="block text-xs font-medium text-zinc-500 mb-1">Stock</label>
                                                     <input required type="number" value={v.stock} onChange={e => { const nv = [...variants]; nv[i].stock = e.target.value; setVariants(nv); }} className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
                                                 </div>
+                                                <div className="w-32">
+                                                    <label className="block text-xs font-medium text-zinc-500 mb-1">Image URL (Optional)</label>
+                                                    <input type="text" value={v.image || ""} onChange={e => { const nv = [...variants]; nv[i].image = e.target.value; setVariants(nv); }} placeholder="https://..." className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
+                                                </div>
                                                 <div className="flex items-end pb-0.5">
                                                     <button type="button" onClick={() => setVariants(variants.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 rounded">
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -309,6 +349,16 @@ export default function AdminProductForm() {
                                         className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-app-orange file:text-white hover:file:bg-orange-600 cursor-pointer"
                                     />
                                 </div>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Gallery Images (Optional comma separated URLs)</label>
+                                <input
+                                    type="text"
+                                    value={formData.gallery.join(", ")}
+                                    onChange={(e) => setFormData({ ...formData, gallery: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all"
+                                    placeholder="https://img1.jpg, https://img2.jpg"
+                                />
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-zinc-700 mb-2">Description</label>

@@ -71,6 +71,26 @@ export default function AdminCategories() {
 
     if (loading) return <Loading />;
 
+    const renderCategoryOptions = (parentId: string | null = null, level: number = 0): JSX.Element[] => {
+        return categories
+            .filter((c) => {
+                // don't allow setting a category as its own parent
+                if (c._id === editId) return false;
+                
+                if (parentId === null) {
+                    return !c.parentCategory;
+                } else {
+                    return c.parentCategory?._id === parentId;
+                }
+            })
+            .flatMap((c) => [
+                <option key={c._id} value={c._id}>
+                    {"—".repeat(level) + (level > 0 ? " " : "") + c.name}
+                </option>,
+                ...renderCategoryOptions(c._id, level + 1),
+            ]);
+    };
+
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-app-border p-6">
@@ -88,9 +108,7 @@ export default function AdminCategories() {
                         <label className="block text-xs font-medium text-zinc-500 mb-1">Parent Category (Optional)</label>
                         <select value={formData.parentCategory} onChange={e => setFormData({ ...formData, parentCategory: e.target.value })} className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white">
                             <option value="">None (Top-Level)</option>
-                            {categories.filter(c => c._id !== editId && !c.parentCategory).map((c) => (
-                                <option key={c._id} value={c._id}>{c.name}</option>
-                            ))}
+                            {renderCategoryOptions(null, 0)}
                         </select>
                     </div>
                     <div className="flex gap-2">

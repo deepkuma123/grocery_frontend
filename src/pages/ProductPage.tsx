@@ -112,7 +112,7 @@ const ProductPage = () => {
                     <div className="grid md:grid-cols-2 gap-0">
                         {/* left side - Image */}
                         <div className="relative flex-center p-8 md:p-12 min-h-[320px] md:min-h-[480px]">
-                            <img src={product.image} alt={product.name} className="max-h-[360px] w-auto object-contain" />
+                            <img src={selectedVariant?.image || product.image} alt={product.name} className="max-h-[360px] w-auto object-contain" />
 
                             <div className="absolute top-5 left-5 flex flex-wrap gap-1.5">
                                 {product.isOrganic && (
@@ -124,8 +124,20 @@ const ProductPage = () => {
                                 {displayDiscount > 0 && <span className="px-2.5 py-1 text-xs font-semibold bg-app-orange text-white rounded-full">{displayDiscount}% OFF</span>}
                             </div>
                         </div>
-                        {/* Badges */}
-
+                        
+                        {/* Gallery Thumbnails */}
+                        {product.gallery && product.gallery.length > 0 && (
+                            <div className="col-span-1 md:col-span-2 flex gap-3 px-8 pb-8 overflow-x-auto no-scrollbar">
+                                <div className="size-16 md:size-20 shrink-0 border-2 rounded-xl overflow-hidden cursor-pointer border-app-green">
+                                    <img src={product.image} className="w-full h-full object-cover" />
+                                </div>
+                                {product.gallery.map((imgUrl, i) => (
+                                    <div key={i} className="size-16 md:size-20 shrink-0 border-2 border-transparent hover:border-zinc-300 rounded-xl overflow-hidden cursor-pointer transition-all">
+                                        <img src={imgUrl} className="w-full h-full object-cover" />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {/* right side - Details */}
                         <div className="p-6 md:p-10 flex flex-col justify-center">
                             <span className="text-xs font-medium text-app-text-light tracking-wider mb-2 capitalize">{categoryLabel}</span>
@@ -191,7 +203,7 @@ const ProductPage = () => {
 
                             {/* Stock */}
 
-                            <div className="mb-6">{displayStock > 0 ? <span className="text-sm text-app-success font-medium">✓ In Stock ({displayStock} available)</span> : <span className="text-sm text-app-error font-medium">Out of Stock</span>}</div>
+                            <div className="mb-6">{displayStock > 0 ? <span className="text-sm text-app-success font-medium">✓ In Stock</span> : <span className="text-sm text-app-error font-medium">Out of Stock</span>}</div>
 
                             {/* Quantity + Add to Cart */}
                             <div className="flex items-center gap-3">
