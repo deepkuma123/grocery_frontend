@@ -213,20 +213,27 @@ export default function AdminProductForm() {
                                     className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all bg-white"
                                 >
                                     <option value="">Select a category</option>
-                                    {categoriesData
-                                        .filter(c => !c.parentCategory)
-                                        .map((parent) => (
-                                            <optgroup key={parent.slug} label={parent.name}>
-                                                <option value={parent.slug}>{parent.name} (Main)</option>
-                                                {categoriesData
-                                                    .filter(c => c.parentCategory && c.parentCategory._id === parent._id)
-                                                    .map(child => (
-                                                        <option key={child.slug} value={child.slug}>
-                                                            -- {child.name}
-                                                        </option>
-                                                    ))}
-                                            </optgroup>
-                                        ))}
+                                    {(() => {
+                                        const renderCategoryOptions = (parentId: string, level: number): JSX.Element[] => {
+                                            return categoriesData
+                                                .filter(c => c.parentCategory && c.parentCategory._id === parentId)
+                                                .flatMap(child => [
+                                                    <option key={child.slug} value={child.slug}>
+                                                        {"—".repeat(level)} {child.name}
+                                                    </option>,
+                                                    ...renderCategoryOptions(child._id, level + 1)
+                                                ]);
+                                        };
+                                        
+                                        return categoriesData
+                                            .filter(c => !c.parentCategory)
+                                            .map(parent => (
+                                                <optgroup key={parent.slug} label={parent.name}>
+                                                    <option value={parent.slug}>{parent.name} (Main)</option>
+                                                    {renderCategoryOptions(parent._id, 1)}
+                                                </optgroup>
+                                            ));
+                                    })()}
                                     {categoriesData
                                         .filter(c => c.parentCategory && !categoriesData.find(p => p._id === c.parentCategory._id))
                                         .map(orphan => (
