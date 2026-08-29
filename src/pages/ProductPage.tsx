@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useEffect, useState } from "react";
 import type { Product } from "../types";
@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 const ProductPage = () => {
     const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "₹";
     const { id } = useParams();
+    const [searchParams] = useSearchParams();
+    const variantIdParam = searchParams.get("variant");
     const navigate = useNavigate();
     const { items, addToCart, updateQuantity, removeFromCart } = useCart();
 
@@ -46,8 +48,18 @@ const ProductPage = () => {
             .then(({ data }) => {
                 setProduct(data.product);
                 if (data.product.hasVariants && data.product.variants?.length > 0) {
-                    const maxPriceVariant = data.product.variants.reduce((prev: any, curr: any) => (prev.price > curr.price ? prev : curr));
-                    setSelectedVariant(maxPriceVariant);
+                    if (variantIdParam) {
+                        const matchedVariant = data.product.variants.find((v: any) => v._id === variantIdParam || v.id === variantIdParam);
+                        if (matchedVariant) {
+                            setSelectedVariant(matchedVariant);
+                        } else {
+                            const maxPriceVariant = data.product.variants.reduce((prev: any, curr: any) => (prev.price > curr.price ? prev : curr));
+                            setSelectedVariant(maxPriceVariant);
+                        }
+                    } else {
+                        const maxPriceVariant = data.product.variants.reduce((prev: any, curr: any) => (prev.price > curr.price ? prev : curr));
+                        setSelectedVariant(maxPriceVariant);
+                    }
                 } else {
                     setSelectedVariant(null);
                 }

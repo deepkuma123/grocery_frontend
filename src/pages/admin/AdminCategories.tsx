@@ -3,6 +3,7 @@ import api from "../../config/api";
 import toast from "react-hot-toast";
 import Loading from "../../components/Loading";
 import { PlusIcon, XIcon, EditIcon } from "lucide-react";
+import ImageCropperModal from "../../components/admin/ImageCropperModal";
 
 export default function AdminCategories() {
     const [categories, setCategories] = useState<any[]>([]);
@@ -11,6 +12,8 @@ export default function AdminCategories() {
     const [formData, setFormData] = useState({ name: "", slug: "", image: "", parentCategory: "" });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
     const fetchCategories = async () => {
         try {
@@ -31,14 +34,25 @@ export default function AdminCategories() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
+            let finalImageUrl = formData.image;
+            if (imageFile) {
+                const formDataUpload = new FormData();
+                formDataUpload.append("image", imageFile);
+                const { data } = await api.post("/upload", formDataUpload);
+                finalImageUrl = data.url;
+            }
+            
+            const payload = { ...formData, image: finalImageUrl };
+
             if (editId) {
-                await api.put(`/categories/${editId}`, formData);
+                await api.put(`/categories/${editId}`, payload);
                 toast.success("Category updated");
             } else {
-                await api.post("/categories", formData);
+                await api.post("/categories", payload);
                 toast.success("Category created");
             }
             setFormData({ name: "", slug: "", image: "", parentCategory: "" });
+            setImageFile(null);
             setEditId(null);
             fetchCategories();
         } catch (error: any) {
@@ -66,6 +80,7 @@ export default function AdminCategories() {
             image: c.image || "",
             parentCategory: c.parentCategory?._id || "",
         });
+        setImageFile(null);
         setEditId(c._id);
     };
 
@@ -95,7 +110,8 @@ export default function AdminCategories() {
         <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-app-border p-6">
                 <h2 className="text-lg font-semibold text-zinc-900 mb-4">{editId ? "Edit Category" : "Add New Category"}</h2>
-                <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
                     <div className="flex-1 w-full">
                         <label className="block text-xs font-medium text-zinc-500 mb-1">Name</label>
                         <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" placeholder="e.g. Fresh Fruits" />
@@ -111,15 +127,34 @@ export default function AdminCategories() {
                             {renderCategoryOptions(null, 0)}
                         </select>
                     </div>
-                    <div className="flex gap-2">
+                    </div>
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1 w-full max-w-sm">
+                        <label className="block text-xs font-medium text-zinc-500 mb-1">Category Image (Optional)</label>
+                        <div className="flex items-center gap-3">
+                            {(imageFile || formData.image) && (
+                                <img src={imageFile ? URL.createObjectURL(imageFile) : formData.image} alt="Category" className="size-10 object-cover rounded-lg border border-zinc-200 shrink-0" />
+                            )}
+                            <input type="file" id="cat-image-upload" accept="image/*" onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                    const file = e.target.files[0];
+                                    const reader = new FileReader();
+                                    reader.onload = () => setCropImageSrc(reader.result as string);
+                                    reader.readAsDataURL(file);
+                                }
+                            }} className="w-full px-3 py-1.5 border border-zinc-200 rounded-lg text-sm bg-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-app-orange hover:file:bg-orange-100" />
+                        </div>
+                    </div>
+                    <div className="flex gap-2 ml-auto">
                         {editId && (
-                            <button type="button" onClick={() => { setEditId(null); setFormData({ name: "", slug: "", image: "", parentCategory: "" }); }} className="px-4 py-2 border border-zinc-200 rounded-lg text-sm font-medium hover:bg-zinc-50 transition">
+                            <button type="button" onClick={() => { setEditId(null); setFormData({ name: "", slug: "", image: "", parentCategory: "" }); setImageFile(null); }} className="px-4 py-2 border border-zinc-200 rounded-lg text-sm font-medium hover:bg-zinc-50 transition">
                                 Cancel
                             </button>
                         )}
                         <button disabled={isSubmitting} type="submit" className="px-4 py-2 bg-app-green text-white rounded-lg text-sm font-medium hover:bg-green-950 transition flex items-center gap-2">
                             {editId ? "Update" : <><PlusIcon className="size-4" /> Add</>}
                         </button>
+                    </div>
                     </div>
                 </form>
             </div>
@@ -131,6 +166,7 @@ export default function AdminCategories() {
                 <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead className="bg-app-cream/50 text-zinc-500 uppercase text-xs font-semibold">
                         <tr>
+                            <th className="px-6 py-4 w-20">Image</th>
                             <th className="px-6 py-4">Name</th>
                             <th className="px-6 py-4">Slug</th>
                             <th className="px-6 py-4">Parent</th>
@@ -140,6 +176,9 @@ export default function AdminCategories() {
                     <tbody className="divide-y divide-app-border">
                         {categories.map((c) => (
                             <tr key={c._id} className="hover:bg-zinc-50 transition">
+                                <td className="px-6 py-4">
+                                    {c.image ? <img src={c.image} alt={c.name} className="size-10 object-cover rounded-lg border border-zinc-200" /> : <div className="size-10 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 text-[10px]">No img</div>}
+                                </td>
                                 <td className="px-6 py-4 font-medium text-zinc-900">{c.name}</td>
                                 <td className="px-6 py-4 text-zinc-500">{c.slug}</td>
                                 <td className="px-6 py-4 text-zinc-500">{c.parentCategory ? c.parentCategory.name : "—"}</td>
@@ -156,6 +195,21 @@ export default function AdminCategories() {
                     </tbody>
                 </table>
             </div>
+            
+            {cropImageSrc && (
+                <ImageCropperModal
+                    imageSrc={cropImageSrc}
+                    onCropComplete={(file) => {
+                        setImageFile(file);
+                        setCropImageSrc(null);
+                    }}
+                    onClose={() => {
+                        setCropImageSrc(null);
+                        const fileInput = document.getElementById("cat-image-upload") as HTMLInputElement;
+                        if (fileInput) fileInput.value = "";
+                    }}
+                />
+            )}
         </div>
     );
 }

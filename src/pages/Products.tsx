@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Product } from "../types";
 import { ChevronDown, Home, SlidersHorizontal, XIcon } from "lucide-react";
-import ProductCard from "../components/ProductCard";
+import ProductCard, { ProductCardSingle } from "../components/ProductCard";
 import Loading from "../components/Loading";
 import FilterPanel from "../components/FilterPanel";
 import api from "../config/api";
@@ -73,6 +73,45 @@ const Products = () => {
         fetchProducts();
     }, [category, organic, sort, page, minPrice, maxPrice]);
 
+    const flattenedProducts = useMemo(() => {
+        let flattened: any[] = [];
+        for (const p of products) {
+            if (p.hasVariants && p.variants?.length > 0) {
+                for (const v of p.variants) {
+                    flattened.push({ product: p, variant: v, effectivePrice: v.price });
+                }
+            } else {
+                flattened.push({ product: p, variant: null, effectivePrice: p.price });
+            }
+        }
+        
+        if (sort === "price_asc") {
+            flattened.sort((a, b) => a.effectivePrice - b.effectivePrice);
+        } else if (sort === "price_desc") {
+            flattened.sort((a, b) => b.effectivePrice - a.effectivePrice);
+        } else if (sort === "name") {
+            flattened.sort((a, b) => {
+                const nameCompare = a.product.name.localeCompare(b.product.name);
+                if (nameCompare !== 0) return nameCompare;
+                return a.effectivePrice - b.effectivePrice;
+            });
+        } else if (sort === "rating") {
+            flattened.sort((a, b) => {
+                if (b.product.rating !== a.product.rating) return b.product.rating - a.product.rating;
+                return a.effectivePrice - b.effectivePrice;
+            });
+        } else {
+            // Default is Newest
+            flattened.sort((a, b) => {
+                const dateA = new Date(a.product.createdAt).getTime();
+                const dateB = new Date(b.product.createdAt).getTime();
+                if (dateB !== dateA) return dateB - dateA;
+                return a.effectivePrice - b.effectivePrice;
+            });
+        }
+        return flattened;
+    }, [products, sort]);
+
     return (
         <div className="min-h-screen bg-app-cream">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -125,7 +164,7 @@ const Products = () => {
                         {/* Product Grid */}
                         {loading ? (
                             <Loading />
-                        ) : products.length === 0 ? (
+                        ) : flattenedProducts.length === 0 ? (
                             <div className="text-center py-16">
                                 <p className="text-lg font-semibold text-app-green mb-2">No products found</p>
                                 <p className="text-sm text-app-text-light mb-4">Try adjusting your filters or search terms</p>
@@ -134,7 +173,11 @@ const Products = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 xl:gap-8">{products.map((product) => <ProductCard key={product.id} product={product} />)}</div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 xl:gap-8">
+                                {flattenedProducts.map((item, idx) => (
+                                    <ProductCardSingle key={`${item.product.id}-${item.variant?._id || idx}`} product={item.product} variant={item.variant} />
+                                ))}
+                            </div>
                         )}
 
                         {/* Pagination */}
