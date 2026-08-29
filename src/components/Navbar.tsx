@@ -6,6 +6,28 @@ import { useAuth } from "../context/AuthContext";
 import { assets } from "../assets/assets";
 import api from "../config/api";
 
+const CategoryNode = ({ category, allCategories }: { category: any; allCategories: any[] }) => {
+    const children = allCategories.filter(c => c.parentCategory?._id === category._id);
+    const hasChildren = children.length > 0;
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <div className="relative" onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
+            <Link to={`/products?category=${category.slug}`} className="px-5 py-2.5 text-sm hover:bg-orange-50 hover:text-app-orange flex justify-between items-center transition-colors">
+                {category.name}
+                {hasChildren && <ChevronDownIcon className="size-3 -rotate-90 text-zinc-400" />}
+            </Link>
+            {hasChildren && isOpen && (
+                <div className="absolute top-0 left-full -ml-1 w-52 bg-white rounded-xl shadow-lg border border-app-border py-2 z-50 animate-fade-in">
+                    {children.map(child => (
+                        <CategoryNode key={child.slug} category={child} allCategories={allCategories} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const Navbar = () => {
     const { user, logout } = useAuth();
     const { cartCount, setIsCartOpen } = useCart();
@@ -51,26 +73,9 @@ const Navbar = () => {
                                 Categories <ChevronDownIcon className="size-4" />
                             </button>
                             <div className="absolute top-full left-0 mt-0 w-56 bg-white rounded-xl shadow-lg border border-app-border py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                {categories.filter(c => !c.parentCategory).map(parent => {
-                                    const hasChildren = categories.some(c => c.parentCategory?._id === parent._id);
-                                    return (
-                                        <div key={parent.slug} className="relative group/sub">
-                                            <Link to={`/products?category=${parent.slug}`} className="px-5 py-2.5 text-sm hover:bg-orange-50 hover:text-app-orange flex justify-between items-center transition-colors">
-                                                {parent.name}
-                                                {hasChildren && <ChevronDownIcon className="size-3 -rotate-90 text-zinc-400" />}
-                                            </Link>
-                                            {hasChildren && (
-                                                <div className="absolute top-0 left-full -ml-1 w-52 bg-white rounded-xl shadow-lg border border-app-border py-2 z-50 opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-200">
-                                                    {categories.filter(c => c.parentCategory?._id === parent._id).map(child => (
-                                                        <Link key={child.slug} to={`/products?category=${child.slug}`} className="block px-5 py-2 text-sm hover:bg-orange-50 hover:text-app-orange transition-colors">
-                                                            {child.name}
-                                                        </Link>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                {categories.filter(c => !c.parentCategory).map(parent => (
+                                    <CategoryNode key={parent.slug} category={parent} allCategories={categories} />
+                                ))}
                             </div>
                         </div>
 

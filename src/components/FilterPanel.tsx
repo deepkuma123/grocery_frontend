@@ -1,16 +1,47 @@
-const FilterPanel = ({ categories, category, minPrice, maxPrice, updateFilter, clearFilters, hasFilters }: any) => {
-    const categoriesWithAll = [{ slug: "", name: "All Categories" }, ...categories];
+import { ChevronDown } from "lucide-react";
+import React from "react";
 
+const SidebarCategory = ({ cat, allCategories, category, updateFilter, level = 0 }: any) => {
+    const children = allCategories.filter((c: any) => c.parentCategory?._id === cat._id);
+    const hasChildren = children.length > 0;
+    const isCategoryActive = category === cat.slug;
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    return (
+        <div>
+            <div className="flex items-center">
+                <button onClick={() => updateFilter("category", cat.slug)} className={`flex-1 text-left px-3 py-2 text-sm rounded-md transition-all ${isCategoryActive ? "bg-app-green text-white" : "text-app-text-light hover:bg-app-cream"}`} style={{ paddingLeft: `${(level + 1) * 0.75}rem` }}>
+                    {cat.name}
+                </button>
+                {hasChildren && (
+                    <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-app-text-light hover:text-app-green transition-colors">
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    </button>
+                )}
+            </div>
+            {hasChildren && isOpen && (
+                <div className="mt-0.5 space-y-0.5 border-l-2 border-app-border ml-3 pl-1 animate-fade-in">
+                    {children.map((child: any) => (
+                        <SidebarCategory key={child.slug} cat={child} allCategories={allCategories} category={category} updateFilter={updateFilter} level={level + 1} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const FilterPanel = ({ categories, category, minPrice, maxPrice, updateFilter, clearFilters, hasFilters }: any) => {
     return (
         <div className="space-y-6">
             {/* Categories */}
             <div>
                 <h3 className="text-sm font-semibold text-app-green mb-3">Categories</h3>
                 <div className="space-y-1.5">
-                    {categoriesWithAll.map((cat: any) => (
-                        <button key={cat.slug} onClick={() => updateFilter("category", cat.slug)} className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-all ${category === cat.slug ? "bg-app-green text-white" : "text-app-text-light hover:bg-app-cream"}`}>
-                            {cat.name}
-                        </button>
+                    <button onClick={() => updateFilter("category", "")} className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-all ${!category ? "bg-app-green text-white" : "text-app-text-light hover:bg-app-cream"}`}>
+                        All Categories
+                    </button>
+                    {categories.filter((c: any) => !c.parentCategory).map((cat: any) => (
+                        <SidebarCategory key={cat.slug} cat={cat} allCategories={categories} category={category} updateFilter={updateFilter} />
                     ))}
                 </div>
             </div>
