@@ -24,17 +24,36 @@ const ProductCard = ({ product }: Props) => {
         isOutOfStock = product.stock === 0;
     }
 
+    const defaultVariant = product.hasVariants && product.variants && product.variants.length > 0 ? product.variants.reduce((prev, curr) => (prev.price > curr.price ? prev : curr)) : null;
+
+    const displayPrice = defaultVariant ? defaultVariant.price : product.price;
+    const displayOriginalPrice = defaultVariant ? defaultVariant.originalPrice : product.originalPrice;
+    const displayUnit = defaultVariant ? defaultVariant.unit : product.unit;
+    
+    let displayDiscount = 0;
+    if (defaultVariant) {
+        if (displayOriginalPrice > displayPrice) {
+            displayDiscount = Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100);
+        }
+    } else {
+        if (product.originalPrice > product.price) {
+            displayDiscount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+        } else {
+            displayDiscount = product.discount || 0;
+        }
+    }
+
     const cartItem = items.find((i) => i.product.id === product.id && !i.variantId);
 
     return (
         <div className="bg-white rounded-2xl overflow-hidden shadow hover:shadow-md transition-all duration-300 group animate-fade-in cursor-pointer" onClick={() => navigate(`/products/${product.id}`)}>
             {/* Image */}
             <div className="relative aspect-square overflow-hidden">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover p-4 group-hover:p-2 transition-all duration-300" />
+                <img src={defaultVariant?.image || product.image} alt={product.name} className="w-full h-full object-cover p-4 group-hover:p-2 transition-all duration-300" />
 
                 {/* Badges */}
                 <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                    {product.discount > 0 && <span className="px-2 py-0.5 text-[10px] font-semibold uppercase bg-app-orange text-white rounded-full">{product.discount}% OFF</span>}
+                    {displayDiscount > 0 && <span className="px-2 py-0.5 text-[10px] font-semibold uppercase bg-app-orange text-white rounded-full">{displayDiscount}% OFF</span>}
                     {isOutOfStock && <span className="px-2 py-0.5 text-[10px] font-semibold uppercase bg-red-500 text-white rounded-full">Out of Stock</span>}
                 </div>
 
@@ -68,13 +87,13 @@ const ProductCard = ({ product }: Props) => {
                     <div className="flex items-center gap-1 truncate">
                         <span className="text-base font-medium">
                             {currency}
-                            {product.price.toFixed(1)}
+                            {displayPrice.toFixed(1)}
                         </span>
-                        <span className="text-xs text-app-text-light block">/{product.unit}</span>
-                        {product.originalPrice > product.price && (
+                        <span className="text-xs text-app-text-light block">/{displayUnit}</span>
+                        {displayOriginalPrice > displayPrice && (
                             <span className="text-xs text-app-text-light line-through ml-1.5">
                                 {currency}
-                                {product.originalPrice.toFixed(1)}
+                                {displayOriginalPrice.toFixed(1)}
                             </span>
                         )}
                     </div>

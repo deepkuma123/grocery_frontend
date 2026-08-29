@@ -5,6 +5,29 @@ import Loading from "../../components/Loading";
 import { statusColors } from "../../assets/assets";
 import api from "../../config/api";
 import toast from "react-hot-toast";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend
+);
 
 interface Stats {
     totalOrders: number;
@@ -14,6 +37,7 @@ interface Stats {
     lowStock: number;
     totalProfit: number;
     recentOrders: any[];
+    salesData: any[];
 }
 
 export default function AdminDashboard() {
@@ -21,13 +45,61 @@ export default function AdminDashboard() {
 
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [days, setDays] = useState(7);
 
     const [settings, setSettings] = useState<any>(null);
     const [bannerUrl, setBannerUrl] = useState("");
     const [savingBanner, setSavingBanner] = useState(false);
 
+    const chartData = {
+        labels: stats?.salesData?.map(d => {
+            const date = new Date(d.date);
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        }) || [],
+        datasets: [
+            {
+                fill: true,
+                label: 'Revenue',
+                data: stats?.salesData?.map(d => d.revenue) || [],
+                borderColor: '#16a34a',
+                backgroundColor: 'rgba(22, 163, 74, 0.2)',
+                tension: 0.4
+            }
+        ]
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context: any) {
+                        return currency + context.parsed.y.toFixed(2);
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false }
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: '#f4f4f5' },
+                ticks: {
+                    callback: function(value: any) {
+                        return currency + value;
+                    }
+                }
+            }
+        }
+    };
+
     useEffect(() => {
-        api.get("/admin/stats")
+        setLoading(true);
+        api.get(`/admin/stats?days=${days}`)
             .then((res) => setStats(res.data))
             .catch(() => {})
             .finally(() => setLoading(false));
@@ -38,7 +110,7 @@ export default function AdminDashboard() {
                 setBannerUrl(res.data.settings?.homeBannerImage || "");
             })
             .catch(() => {});
-    }, []);
+    }, [days]);
 
     const handleSaveBanner = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,7 +131,7 @@ export default function AdminDashboard() {
               { label: "Total Profit", value: `${currency}${stats.totalProfit?.toFixed(2) || "0.00"}`, icon: PackageIcon },
               { label: "Total Users", value: stats.totalUsers, icon: UsersIcon },
               { label: "Out of Stock", value: stats.outOfStock, icon: AlertTriangleIcon, link: "/admin/products?status=outofstock" },
-              { label: "Low Stock", value: stats.lowStock, icon: AlertTriangleIcon },
+              { label: "Low Stock", value: stats.lowStock, icon: AlertTriangleIcon, link: "/admin/products?status=lowstock" },
           ]
         : [];
 
@@ -83,6 +155,34 @@ export default function AdminDashboard() {
                         </CardWrapper>
                     );
                 })}
+            </div>
+
+            {/* Sales Chart */}
+            <div className="bg-white rounded-2xl border border-app-border overflow-hidden p-6 mb-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-semibold text-zinc-900">Revenue Overview</h2>
+                    <select 
+                        value={days} 
+                        onChange={(e) => setDays(Number(e.target.value))}
+                        className="px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 outline-none focus:border-app-green focus:ring-1 focus:ring-app-green transition-all"
+                    >
+                        <option value={7}>Last 7 Days</option>
+                        <option value={30}>Last 30 Days</option>
+                        <option value={90}>Last 90 Days</option>
+                    </select>
+                </div>
+                <div className="h-72 w-full">
+                    {stats?.salesData?.some(d => d.revenue > 0) ? (
+                        <Line data={chartData} options={chartOptions} />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-zinc-200 rounded-xl">
+                            <div className="text-center">
+                                <p className="text-zinc-500 font-medium">No sales data for this period</p>
+                                <p className="text-xs text-zinc-400 mt-1">Try selecting a different date range.</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Recent Orders */}

@@ -21,6 +21,7 @@ const ProductPage = () => {
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
     const [notifyEmail, setNotifyEmail] = useState("");
     const [notifying, setNotifying] = useState(false);
+    const [activeImage, setActiveImage] = useState<string | null>(null);
 
     const handleNotify = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,10 +46,12 @@ const ProductPage = () => {
             .then(({ data }) => {
                 setProduct(data.product);
                 if (data.product.hasVariants && data.product.variants?.length > 0) {
-                    setSelectedVariant(data.product.variants[0]);
+                    const maxPriceVariant = data.product.variants.reduce((prev: any, curr: any) => (prev.price > curr.price ? prev : curr));
+                    setSelectedVariant(maxPriceVariant);
                 } else {
                     setSelectedVariant(null);
                 }
+                setActiveImage(null);
                 return api.get(`/products/${data.product.id}/similar`);
             })
             .then(({ data }) => {
@@ -68,7 +71,18 @@ const ProductPage = () => {
     const displayPrice = selectedVariant ? selectedVariant.price : product.price;
     const displayOriginalPrice = selectedVariant ? selectedVariant.originalPrice : product.originalPrice;
     const displayStock = selectedVariant ? selectedVariant.stock : product.stock;
-    const displayDiscount = selectedVariant && displayOriginalPrice ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100) : product.discount;
+    let displayDiscount = 0;
+    if (selectedVariant) {
+        if (displayOriginalPrice > displayPrice) {
+            displayDiscount = Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100);
+        }
+    } else {
+        if (product.originalPrice > product.price) {
+            displayDiscount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+        } else {
+            displayDiscount = product.discount || 0;
+        }
+    }
 
     const handleMinus = () => {
         if (inCart) {
@@ -109,35 +123,42 @@ const ProductPage = () => {
 
                 {/* Product Details Section */}
                 <div className="bg-white/50 rounded-2xl overflow-hidden">
-                    <div className="grid md:grid-cols-2 gap-0">
-                        {/* left side - Image */}
-                        <div className="relative flex-center p-8 md:p-12 min-h-[320px] md:min-h-[480px]">
-                            <img src={selectedVariant?.image || product.image} alt={product.name} className="max-h-[360px] w-auto object-contain" />
+                    <div className="grid md:grid-cols-2 gap-0 lg:gap-8">
+                        {/* left side - Image & Gallery */}
+                        <div className="flex flex-col bg-white rounded-3xl m-4 md:m-6 shadow-sm border border-zinc-100/50">
+                            <div className="relative flex-center p-8 md:p-12 min-h-[320px] md:min-h-[480px] group overflow-hidden cursor-crosshair">
+                                <img src={activeImage || selectedVariant?.image || product.image} alt={product.name} className="max-h-[360px] w-auto object-contain transition-transform duration-700 ease-out group-hover:scale-125" />
 
-                            <div className="absolute top-5 left-5 flex flex-wrap gap-1.5">
-                                {product.isOrganic && (
-                                    <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-app-green text-white rounded-full">
-                                        <LeafIcon className="w-3 h-3" />
-                                        Organic
-                                    </span>
-                                )}
-                                {displayDiscount > 0 && <span className="px-2.5 py-1 text-xs font-semibold bg-app-orange text-white rounded-full">{displayDiscount}% OFF</span>}
-                            </div>
-                        </div>
-                        
-                        {/* Gallery Thumbnails */}
-                        {product.gallery && product.gallery.length > 0 && (
-                            <div className="col-span-1 md:col-span-2 flex gap-3 px-8 pb-8 overflow-x-auto no-scrollbar">
-                                <div className="size-16 md:size-20 shrink-0 border-2 rounded-xl overflow-hidden cursor-pointer border-app-green">
-                                    <img src={product.image} className="w-full h-full object-cover" />
+                                <div className="absolute top-5 left-5 flex flex-wrap gap-2 z-10">
+                                    {product.isOrganic && (
+                                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-app-green text-white rounded-full shadow-md shadow-app-green/20 backdrop-blur-md">
+                                            <LeafIcon className="w-3.5 h-3.5" />
+                                            Organic
+                                        </span>
+                                    )}
+                                    {displayDiscount > 0 && <span className="px-3 py-1.5 text-xs font-bold bg-app-orange text-white rounded-full shadow-md shadow-app-orange/20 backdrop-blur-md">{displayDiscount}% OFF</span>}
                                 </div>
-                                {product.gallery.map((imgUrl, i) => (
-                                    <div key={i} className="size-16 md:size-20 shrink-0 border-2 border-transparent hover:border-zinc-300 rounded-xl overflow-hidden cursor-pointer transition-all">
-                                        <img src={imgUrl} className="w-full h-full object-cover" />
-                                    </div>
-                                ))}
                             </div>
-                        )}
+                            
+                            {/* Gallery Thumbnails */}
+                            {(product.gallery?.length > 0 || product.variants?.some(v => v.image)) && (
+                                <div className="flex gap-4 px-8 pb-8 overflow-x-auto no-scrollbar justify-center">
+                                    <div onClick={() => setActiveImage(product.image)} className={`size-16 md:size-20 shrink-0 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${!activeImage || activeImage === product.image ? "ring-2 ring-app-green ring-offset-2 scale-105 shadow-md" : "opacity-70 hover:opacity-100 hover:scale-105 bg-zinc-50"}`}>
+                                        <img src={product.image} className="w-full h-full object-cover" />
+                                    </div>
+                                    {product.variants?.filter(v => v.image).map((v, i) => (
+                                        <div key={`v-${i}`} onClick={() => setActiveImage(v.image)} className={`size-16 md:size-20 shrink-0 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${activeImage === v.image ? "ring-2 ring-app-green ring-offset-2 scale-105 shadow-md" : "opacity-70 hover:opacity-100 hover:scale-105 bg-zinc-50"}`}>
+                                            <img src={v.image} className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                    {product.gallery?.map((imgUrl, i) => (
+                                        <div key={`g-${i}`} onClick={() => setActiveImage(imgUrl)} className={`size-16 md:size-20 shrink-0 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${activeImage === imgUrl ? "ring-2 ring-app-green ring-offset-2 scale-105 shadow-md" : "opacity-70 hover:opacity-100 hover:scale-105 bg-zinc-50"}`}>
+                                            <img src={imgUrl} className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         {/* right side - Details */}
                         <div className="p-6 md:p-10 flex flex-col justify-center">
                             <span className="text-xs font-medium text-app-text-light tracking-wider mb-2 capitalize">{categoryLabel}</span>
@@ -187,12 +208,13 @@ const ProductPage = () => {
                                                 key={variant._id} 
                                                 onClick={() => {
                                                     setSelectedVariant(variant);
+                                                    if (variant.image) setActiveImage(variant.image);
                                                 }}
-                                                className={`px-4 py-2 border rounded-xl text-sm font-medium transition-all ${
+                                                className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
                                                     selectedVariant?._id === variant._id 
-                                                    ? "border-app-green bg-app-green/10 text-app-green" 
-                                                    : "border-zinc-200 text-zinc-600 hover:border-app-green/50"
-                                                } ${variant.stock === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                    ? "bg-app-green text-white shadow-lg shadow-app-green/30 ring-2 ring-app-green ring-offset-2 scale-105" 
+                                                    : "bg-white text-zinc-600 border border-zinc-200 hover:border-app-green/50 hover:bg-green-50"
+                                                } ${variant.stock === 0 ? "opacity-50 cursor-not-allowed saturate-0" : ""}`}
                                             >
                                                 {variant.unit}
                                             </button>

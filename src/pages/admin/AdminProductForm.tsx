@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import Loading from "../../components/Loading";
 import api from "../../config/api";
 import toast from "react-hot-toast";
+import ImageCropperModal from "../../components/admin/ImageCropperModal";
 
 export default function AdminProductForm() {
     const { id } = useParams();
@@ -14,6 +15,11 @@ export default function AdminProductForm() {
     const [loading, setLoading] = useState(isEdit);
     const [saving, setSaving] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+    
+    // Cropper State
+    const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+    const [cropTarget, setCropTarget] = useState<'main' | { type: 'variant', index: number } | 'gallery' | null>(null);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -32,8 +38,8 @@ export default function AdminProductForm() {
         gallery: [] as string[],
     });
     
-    const [variants, setVariants] = useState<{sku: string, unit: string, price: string, costPrice: string, originalPrice: string, stock: string, image: string}[]>([]);
-    const [categoriesData, setCategoriesData] = useState<{name: string, slug: string}[]>([]);
+    const [variants, setVariants] = useState<{sku: string, unit: string, price: string, costPrice: string, originalPrice: string, stock: string, image: string, imageFile?: File | null}[]>([]);
+    const [categoriesData, setCategoriesData] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -110,6 +116,28 @@ export default function AdminProductForm() {
                 return;
             }
 
+            // Upload gallery files
+            const updatedGallery = [...formData.gallery];
+            if (galleryFiles.length > 0) {
+                for (const file of galleryFiles) {
+                    const fData = new FormData();
+                    fData.append("image", file);
+                    const { data } = await api.post("/upload", fData);
+                    updatedGallery.push(data.url);
+                }
+            }
+
+            // Upload variant files
+            const processedVariants = [...variants];
+            for (let i = 0; i < processedVariants.length; i++) {
+                if (processedVariants[i].imageFile) {
+                    const fData = new FormData();
+                    fData.append("image", processedVariants[i].imageFile!);
+                    const { data } = await api.post("/upload", fData);
+                    processedVariants[i].image = data.url;
+                }
+            }
+
             // Save retailer name to local storage
             if (formData.retailerName) {
                 localStorage.setItem("lastRetailerName", formData.retailerName);
@@ -124,8 +152,9 @@ export default function AdminProductForm() {
                 stock: Number(formData.stock),
                 retailerName: formData.retailerName,
                 alertLimit: Number(formData.alertLimit),
+                gallery: updatedGallery,
                 hasVariants: formData.hasVariants,
-                variants: formData.hasVariants ? variants.map(v => ({
+                variants: formData.hasVariants ? processedVariants.map(v => ({
                     sku: v.sku,
                     unit: v.unit,
                     price: Number(v.price),
@@ -184,11 +213,25 @@ export default function AdminProductForm() {
                                     className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all bg-white"
                                 >
                                     <option value="">Select a category</option>
-                                    {categoriesData.map((c) => (
-                                        <option key={c.slug} value={c.slug}>
-                                            {c.name}
-                                        </option>
-                                    ))}
+                                    {categoriesData
+                                        .filter(c => !c.parentCategory)
+                                        .map((parent) => (
+                                            <optgroup key={parent.slug} label={parent.name}>
+                                                <option value={parent.slug}>{parent.name} (Main)</option>
+                                                {categoriesData
+                                                    .filter(c => c.parentCategory && c.parentCategory._id === parent._id)
+                                                    .map(child => (
+                                                        <option key={child.slug} value={child.slug}>
+                                                            -- {child.name}
+                                                        </option>
+                                                    ))}
+                                            </optgroup>
+                                        ))}
+                                    {categoriesData
+                                        .filter(c => c.parentCategory && !categoriesData.find(p => p._id === c.parentCategory._id))
+                                        .map(orphan => (
+                                            <option key={orphan.slug} value={orphan.slug}>{orphan.name}</option>
+                                        ))}
                                 </select>
                             </div>
                             <div>
@@ -312,6 +355,10 @@ export default function AdminProductForm() {
                                                     <input required type="number" step="0.01" value={v.price} onChange={e => { const nv = [...variants]; nv[i].price = e.target.value; setVariants(nv); }} className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
                                                 </div>
                                                 <div className="w-20">
+                                                    <label className="block text-xs font-medium text-zinc-500 mb-1">MRP (Optional)</label>
+                                                    <input type="number" step="0.01" value={v.originalPrice} onChange={e => { const nv = [...variants]; nv[i].originalPrice = e.target.value; setVariants(nv); }} className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
+                                                </div>
+                                                <div className="w-20">
                                                     <label className="block text-xs font-medium text-zinc-500 mb-1 text-red-600">Cost Price</label>
                                                     <input required type="number" step="0.01" value={v.costPrice} onChange={e => { const nv = [...variants]; nv[i].costPrice = e.target.value; setVariants(nv); }} className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200 bg-red-50" />
                                                 </div>
@@ -320,8 +367,20 @@ export default function AdminProductForm() {
                                                     <input required type="number" value={v.stock} onChange={e => { const nv = [...variants]; nv[i].stock = e.target.value; setVariants(nv); }} className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
                                                 </div>
                                                 <div className="w-32">
-                                                    <label className="block text-xs font-medium text-zinc-500 mb-1">Image URL (Optional)</label>
-                                                    <input type="text" value={v.image || ""} onChange={e => { const nv = [...variants]; nv[i].image = e.target.value; setVariants(nv); }} placeholder="https://..." className="w-full px-2 py-1.5 text-sm rounded border border-zinc-200" />
+                                                    <label className="block text-xs font-medium text-zinc-500 mb-1">Image (Optional)</label>
+                                                    <input type="file" accept="image/*" onChange={e => { 
+                                                        if (e.target.files && e.target.files.length > 0) {
+                                                            const file = e.target.files[0];
+                                                            const reader = new FileReader();
+                                                            reader.onload = () => {
+                                                                setCropImageSrc(reader.result as string);
+                                                                setCropTarget({ type: 'variant', index: i });
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                            e.target.value = "";
+                                                        }
+                                                    }} className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-zinc-100 file:text-zinc-700" />
+                                                    {(v.imageFile || v.image) && <span className="text-[10px] text-green-600 block mt-1">Image set</span>}
                                                 </div>
                                                 <div className="flex items-end pb-0.5">
                                                     <button type="button" onClick={() => setVariants(variants.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 rounded">
@@ -335,7 +394,7 @@ export default function AdminProductForm() {
                             )}
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-zinc-700 mb-2">Product Image</label>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Product Image (Square 1:1)</label>
                                 <div className="flex items-center gap-4">
                                     {(imageFile || formData.image) && (
                                         <div className="size-16 rounded-lg border border-zinc-200 overflow-hidden shrink-0 bg-app-cream">
@@ -345,19 +404,73 @@ export default function AdminProductForm() {
                                     <input
                                         type="file"
                                         accept="image/*"
-                                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                const file = e.target.files[0];
+                                                const reader = new FileReader();
+                                                reader.onload = () => {
+                                                    setCropImageSrc(reader.result as string);
+                                                    setCropTarget('main');
+                                                };
+                                                reader.readAsDataURL(file);
+                                                // Reset input so same file can be selected again
+                                                e.target.value = "";
+                                            }
+                                        }}
                                         className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-app-orange file:text-white hover:file:bg-orange-600 cursor-pointer"
                                     />
                                 </div>
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-zinc-700 mb-2">Gallery Images (Optional comma separated URLs)</label>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Gallery Images (Upload multiple)</label>
+                                
+                                {formData.gallery.length > 0 && (
+                                    <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+                                        {formData.gallery.map((img, idx) => (
+                                            <div key={idx} className="relative size-16 shrink-0 rounded-lg border border-zinc-200 overflow-hidden group">
+                                                <img src={img} className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => setFormData({...formData, gallery: formData.gallery.filter((_, i) => i !== idx)})} className="absolute inset-0 bg-black/50 text-white flex-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {galleryFiles.length > 0 && (
+                                    <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+                                        {galleryFiles.map((f, idx) => (
+                                            <div key={idx} className="relative size-16 shrink-0 rounded-lg border border-app-green overflow-hidden group">
+                                                <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => setGalleryFiles(galleryFiles.filter((_, i) => i !== idx))} className="absolute inset-0 bg-black/50 text-white flex-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <input
-                                    type="text"
-                                    value={formData.gallery.join(", ")}
-                                    onChange={(e) => setFormData({ ...formData, gallery: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-                                    className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green focus:ring-1 focus:ring-app-green outline-none transition-all"
-                                    placeholder="https://img1.jpg, https://img2.jpg"
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        if (e.target.files && e.target.files.length > 0) {
+                                            if (e.target.files.length === 1) {
+                                                const file = e.target.files[0];
+                                                const reader = new FileReader();
+                                                reader.onload = () => {
+                                                    setCropImageSrc(reader.result as string);
+                                                    setCropTarget('gallery');
+                                                };
+                                                reader.readAsDataURL(file);
+                                            } else {
+                                                setGalleryFiles([...galleryFiles, ...Array.from(e.target.files)]);
+                                            }
+                                            e.target.value = "";
+                                        }
+                                    }}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 focus:border-app-green outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 cursor-pointer"
                                 />
                             </div>
                             <div className="md:col-span-2">
@@ -384,6 +497,30 @@ export default function AdminProductForm() {
                             </button>
                         </div>
                     </form>
+                )}
+                
+                {cropImageSrc && (
+                    <ImageCropperModal
+                        imageSrc={cropImageSrc}
+                        aspectRatio={1} // Square
+                        onCropComplete={(croppedFile) => {
+                            if (cropTarget === 'main') {
+                                setImageFile(croppedFile);
+                            } else if (cropTarget === 'gallery') {
+                                setGalleryFiles([...galleryFiles, croppedFile]);
+                            } else if (typeof cropTarget === 'object' && cropTarget?.type === 'variant') {
+                                const nv = [...variants];
+                                nv[cropTarget.index].imageFile = croppedFile;
+                                setVariants(nv);
+                            }
+                            setCropImageSrc(null);
+                            setCropTarget(null);
+                        }}
+                        onCancel={() => {
+                            setCropImageSrc(null);
+                            setCropTarget(null);
+                        }}
+                    />
                 )}
             </div>
         </>

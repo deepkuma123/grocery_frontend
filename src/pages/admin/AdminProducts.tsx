@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { PlusIcon, EditIcon, XIcon } from "lucide-react";
+import { PlusIcon, EditIcon, XIcon, RotateCcwIcon } from "lucide-react";
 import type { Product } from "../../types";
 import Loading from "../../components/Loading";
 import api from "../../config/api";
@@ -42,12 +42,26 @@ export default function AdminProducts() {
         }
     };
 
+    const handleRestore = async (id: string) => {
+        try {
+            await api.put(`/products/${id}`, { isDeleted: false });
+            toast.success("Product restored successfully");
+            fetchProducts();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to restore product");
+        }
+    };
+
     if (loading) return <Loading />;
 
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
         if (statusFilter === "outofstock") {
             return matchesSearch && (!p.hasVariants ? p.stock === 0 : p.variants?.every(v => v.stock === 0));
+        }
+        if (statusFilter === "lowstock") {
+            const limit = p.alertLimit || 5;
+            return matchesSearch && (!p.hasVariants ? (p.stock > 0 && p.stock <= limit) : p.variants?.some(v => v.stock > 0 && v.stock <= limit));
         }
         return matchesSearch;
     });
@@ -56,7 +70,7 @@ export default function AdminProducts() {
         <>
             <div className="bg-white rounded-2xl shadow-sm border border-app-border overflow-hidden">
                 <div className="px-6 py-5 border-b border-app-border flex items-center justify-between gap-4 flex-wrap">
-                    <h2 className="text-xl font-semibold text-zinc-900">Products {statusFilter === "outofstock" ? "(Out of Stock)" : ""}</h2>
+                    <h2 className="text-xl font-semibold text-zinc-900">Products {statusFilter === "outofstock" ? "(Out of Stock)" : statusFilter === "lowstock" ? "(Low Stock)" : ""}</h2>
                     <div className="flex items-center gap-4 ml-auto">
                         <input
                             type="text"
@@ -118,9 +132,17 @@ export default function AdminProducts() {
                                         </td>
                                         <td className="px-6 py-4">
                                             {product.hasVariants ? (
-                                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{product.variants?.length || 0} Variants</span>
+                                                <div className="flex flex-col gap-1">
+                                                    {product.variants?.map((v: any, idx: number) => (
+                                                        <span key={idx} className={`px-2 py-0.5 w-max rounded text-[10px] font-semibold ${v.stock > (product.alertLimit || 5) ? "bg-green-100 text-green-700" : v.stock > 0 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}>
+                                                            {v.unit}: {v.stock}
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             ) : (
-                                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${product.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}</span>
+                                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${product.stock > (product.alertLimit || 5) ? "bg-green-100 text-green-700" : product.stock > 0 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}>
+                                                    {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                                                </span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -135,7 +157,12 @@ export default function AdminProducts() {
                                                         </button>
                                                     </>
                                                 ) : (
-                                                    <span className="text-xs font-semibold text-zinc-400 mr-2">Inactive</span>
+                                                    <>
+                                                        <span className="text-xs font-semibold text-zinc-400 mr-2">Inactive</span>
+                                                        <button onClick={() => handleRestore(product.id)} title="Restore Product" className="p-2 text-zinc-500 hover:text-app-green bg-zinc-100 hover:bg-green-50 rounded-lg transition-colors">
+                                                            <RotateCcwIcon className="size-4" />
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>

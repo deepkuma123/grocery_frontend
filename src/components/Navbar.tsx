@@ -4,13 +4,19 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { assets } from "../assets/assets";
+import api from "../config/api";
 
 const Navbar = () => {
     const { user, logout } = useAuth();
     const { cartCount, setIsCartOpen } = useCart();
     const [searchQuery, setSearchQuery] = useState("");
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [categories, setCategories] = useState<any[]>([]);
     const navigate = useNavigate();
+
+    React.useEffect(() => {
+        api.get("/categories").then(res => setCategories(res.data.categories)).catch(() => {});
+    }, []);
 
     const handleSearch = (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -39,6 +45,35 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center gap-6 text-sm text-zinc-600">
                         <NavLink to="/" className={({ isActive }) => isActive ? "text-app-orange font-medium" : "hover:text-app-orange transition-colors"}>Home</NavLink>
                         <NavLink to="/products" className={({ isActive }) => isActive ? "text-app-orange font-medium" : "hover:text-app-orange transition-colors"}>Products</NavLink>
+                        
+                        <div className="relative group py-2">
+                            <button className="flex items-center gap-1 hover:text-app-orange transition-colors outline-none">
+                                Categories <ChevronDownIcon className="size-4" />
+                            </button>
+                            <div className="absolute top-full left-0 mt-0 w-56 bg-white rounded-xl shadow-lg border border-app-border py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                {categories.filter(c => !c.parentCategory).map(parent => {
+                                    const hasChildren = categories.some(c => c.parentCategory?._id === parent._id);
+                                    return (
+                                        <div key={parent.slug} className="relative group/sub">
+                                            <Link to={`/products?category=${parent.slug}`} className="px-5 py-2.5 text-sm hover:bg-orange-50 hover:text-app-orange flex justify-between items-center transition-colors">
+                                                {parent.name}
+                                                {hasChildren && <ChevronDownIcon className="size-3 -rotate-90 text-zinc-400" />}
+                                            </Link>
+                                            {hasChildren && (
+                                                <div className="absolute top-0 left-full -ml-1 w-52 bg-white rounded-xl shadow-lg border border-app-border py-2 z-50 opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-200">
+                                                    {categories.filter(c => c.parentCategory?._id === parent._id).map(child => (
+                                                        <Link key={child.slug} to={`/products?category=${child.slug}`} className="block px-5 py-2 text-sm hover:bg-orange-50 hover:text-app-orange transition-colors">
+                                                            {child.name}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <NavLink to="/deals" className={({ isActive }) => isActive ? "text-app-orange font-medium" : "hover:text-app-orange transition-colors"}>Deals</NavLink>
                     </div>
                     {/* Search */}
